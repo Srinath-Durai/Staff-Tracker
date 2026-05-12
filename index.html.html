@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Staff Session Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #0f1117;
+  --bg2: #181c27;
+  --bg3: #1e2333;
+  --card: #232840;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --text: #e8ecf4;
+  --text2: #8b93a8;
+  --text3: #555e72;
+  --accent: #4f7cff;
+  --accent2: #7c5cfc;
+  --green: #22c97a;
+  --amber: #f59e0b;
+  --red: #f0506e;
+  --blue: #38bdf8;
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
+.app{display:flex;min-height:100vh;}
+
+/* SIDEBAR */
+.sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);padding:0;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;}
+.sidebar-logo{padding:20px 20px 16px;border-bottom:1px solid var(--border);}
+.sidebar-logo h2{font-size:15px;font-weight:600;color:var(--text);letter-spacing:-0.3px;}
+.sidebar-logo p{font-size:11px;color:var(--text3);margin-top:2px;}
+.nav{padding:12px 10px;flex:1;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:var(--radius-sm);cursor:pointer;font-size:13px;color:var(--text2);transition:all 0.15s;margin-bottom:2px;border:none;background:none;width:100%;text-align:left;}
+.nav-item:hover{background:var(--bg3);color:var(--text);}
+.nav-item.active{background:rgba(79,124,255,0.12);color:var(--accent);}
+.nav-item svg{width:16px;height:16px;flex-shrink:0;}
+.nav-section{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;padding:12px 12px 6px;margin-top:4px;}
+.sidebar-footer{padding:14px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--text3);}
+
+/* MAIN */
+.main{margin-left:220px;flex:1;padding:28px 32px;min-height:100vh;}
+.page{display:none;}
+.page.active{display:block;}
+
+/* TOP BAR */
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;}
+.topbar h1{font-size:20px;font-weight:600;letter-spacing:-0.4px;}
+.date-chip{background:rgba(79,124,255,0.1);border:1px solid rgba(79,124,255,0.25);color:var(--accent);padding:6px 14px;border-radius:20px;font-size:12px;font-family:'DM Mono',monospace;}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+.card-sm{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+
+/* FORM */
+.form-section{margin-bottom:24px;}
+.form-section h3{font-size:13px;font-weight:500;color:var(--text2);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.06em;}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+.field label{font-size:12px;color:var(--text2);}
+select,input[type=text],textarea{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);padding:9px 12px;font-size:13px;font-family:'DM Sans',sans-serif;width:100%;outline:none;transition:border 0.15s;}
+select:focus,input[type=text]:focus,textarea:focus{border-color:var(--accent);}
+select option{background:var(--bg3);}
+textarea{resize:vertical;min-height:70px;}
+
+/* STATUS BUTTONS */
+.status-group{display:flex;gap:8px;flex-wrap:wrap;}
+.status-btn{padding:7px 16px;border-radius:20px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all 0.15s;}
+.status-btn:hover{border-color:var(--text3);color:var(--text);}
+.status-btn.sel-present{background:rgba(34,201,122,0.12);border-color:var(--green);color:var(--green);}
+.status-btn.sel-wfh{background:rgba(79,124,255,0.12);border-color:var(--accent);color:var(--accent);}
+.status-btn.sel-away{background:rgba(245,158,11,0.12);border-color:var(--amber);color:var(--amber);}
+.status-btn.sel-leave{background:rgba(240,80,110,0.12);border-color:var(--red);color:var(--red);}
+
+/* SESSION CARDS */
+.session-block{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;}
+.session-block-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.session-block-header h4{font-size:13px;font-weight:500;}
+.session-time-tag{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;background:var(--bg2);padding:4px 10px;border-radius:6px;}
+.work-input{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);padding:9px 12px;font-size:12px;font-family:'DM Sans',sans-serif;width:100%;outline:none;margin-top:10px;transition:border 0.15s;}
+.work-input:focus{border-color:var(--accent);}
+
+/* BUTTONS */
+.btn{padding:10px 22px;border-radius:var(--radius-sm);border:none;cursor:pointer;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;transition:all 0.15s;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{background:#3d6bef;transform:translateY(-1px);}
+.btn-primary:disabled{background:var(--text3);cursor:not-allowed;transform:none;}
+.btn-outline{background:transparent;border:1px solid var(--border2);color:var(--text2);}
+.btn-outline:hover{border-color:var(--text2);color:var(--text);}
+.btn-danger{background:rgba(240,80,110,0.15);border:1px solid rgba(240,80,110,0.3);color:var(--red);}
+.btn-sm{padding:6px 14px;font-size:12px;}
+
+/* LOGIN PAGE */
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg);}
+.login-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:36px 32px;width:380px;}
+.login-card h2{font-size:20px;font-weight:600;margin-bottom:6px;}
+.login-card p{font-size:13px;color:var(--text2);margin-bottom:24px;}
+.login-tabs{display:flex;gap:8px;margin-bottom:20px;}
+.login-tab{flex:1;padding:8px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:transparent;color:var(--text2);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;text-align:center;transition:all 0.15s;}
+.login-tab.active{background:rgba(79,124,255,0.12);border-color:var(--accent);color:var(--accent);}
+.error-msg{background:rgba(240,80,110,0.1);border:1px solid rgba(240,80,110,0.25);color:var(--red);border-radius:var(--radius-sm);padding:9px 12px;font-size:12px;margin-bottom:12px;display:none;}
+
+/* STATS */
+.stat-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
+.stat-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;}
+.stat-value{font-size:24px;font-weight:600;font-family:'DM Mono',monospace;}
+.stat-sub{font-size:11px;color:var(--text2);margin-top:3px;}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border);}
+table{width:100%;border-collapse:collapse;}
+th{font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);padding:11px 14px;text-align:left;border-bottom:1px solid var(--border);background:var(--bg3);}
+td{padding:11px 14px;font-size:13px;border-bottom:1px solid var(--border);color:var(--text);}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,0.02);}
+
+/* BADGE */
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;}
+.badge-present{background:rgba(34,201,122,0.12);color:var(--green);}
+.badge-wfh{background:rgba(79,124,255,0.12);color:var(--accent);}
+.badge-away{background:rgba(245,158,11,0.12);color:var(--amber);}
+.badge-leave{background:rgba(240,80,110,0.12);color:var(--red);}
+.badge-pending{background:rgba(100,100,100,0.2);color:var(--text3);}
+
+/* SUCCESS */
+.success-banner{background:rgba(34,201,122,0.1);border:1px solid rgba(34,201,122,0.25);color:var(--green);border-radius:var(--radius-sm);padding:12px 16px;font-size:13px;margin-bottom:16px;display:none;}
+
+/* PROGRESS BAR */
+.prog-bar{background:var(--bg3);border-radius:20px;height:6px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:20px;background:var(--accent);transition:width 0.4s;}
+
+/* CHART */
+.chart-wrap{position:relative;height:240px;}
+
+/* MANAGER MARKS */
+.marks-input{width:80px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 10px;font-size:13px;font-family:'DM Mono',monospace;text-align:center;outline:none;}
+.marks-input:focus{border-color:var(--accent);}
+
+/* TABS */
+.tabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:0;}
+.tab{padding:8px 16px;font-size:13px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all 0.15s;}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+.alert-info{background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.2);border-radius:var(--radius-sm);padding:12px 14px;font-size:12px;color:var(--blue);margin-bottom:16px;}
+.alert-info strong{display:block;margin-bottom:3px;}
+
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%);}
+  .main{margin-left:0;padding:16px;}
+  .grid4,.grid3,.grid2{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ LOGIN PAGE ═══════════════════ -->
+<div id="loginPage" class="login-wrap">
+  <div class="login-card">
+    <h2>Staff Session Tracker</h2>
+    <p>Sign in to update your daily session status</p>
+    <div class="login-tabs">
+      <button class="login-tab active" onclick="setLoginType('staff')">Staff Login</button>
+      <button class="login-tab" onclick="setLoginType('manager')">Manager Login</button>
+    </div>
+    <div class="error-msg" id="loginError">Invalid credentials. Please try again.</div>
+    <div class="field"><label>Select Name</label>
+      <select id="loginName">
+        <option value="">-- Select your name --</option>
+        <option>Selvapandian P</option>
+        <option>Bhuvaneshwari R</option>
+        <option>Benazir S</option>
+        <option>Kanchana L</option>
+        <option>Subbulakshmi CN</option>
+        <option>Pretheeviraj G</option>
+        <option>Akila G</option>
+        <option>Deviga J</option>
+        <option>Nagendra Gupta S</option>
+        <option>Shaira Banu S</option>
+        <option value="MANAGER" id="managerOpt" style="display:none">Manager</option>
+      </select>
+    </div>
+    <div class="field"><label>Password</label>
+      <input type="text" id="loginPass" placeholder="Enter password" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-top:4px" onclick="doLogin()">Sign In</button>
+    <p style="font-size:11px;color:var(--text3);margin-top:16px;text-align:center">Default staff password: <strong style="color:var(--text2)">staff123</strong> &nbsp;|&nbsp; Manager: <strong style="color:var(--text2)">admin123</strong></p>
+  </div>
+</div>
+
+<!-- ═══════════════════ MAIN APP ═══════════════════ -->
+<div id="mainApp" style="display:none">
+<div class="app">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <h2>SessionTrack</h2>
+    <p id="sidebarDate"></p>
+  </div>
+  <nav class="nav">
+    <div class="nav-section">Staff</div>
+    <button class="nav-item active" id="nav-submit" onclick="showPage('submit')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      Submit Status
+    </button>
+    <button class="nav-item" id="nav-myreport" onclick="showPage('myreport')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 9l-6-6-4 4-3-3"/></svg>
+      My Report
+    </button>
+
+    <div class="nav-section" id="mgr-nav-section" style="display:none">Manager</div>
+    <button class="nav-item" id="nav-dashboard" onclick="showPage('dashboard')" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </button>
+    <button class="nav-item" id="nav-allstaff" onclick="showPage('allstaff')" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      All Staff
+    </button>
+    <button class="nav-item" id="nav-marks" onclick="showPage('marks')" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      Edit Marks
+    </button>
+    <button class="nav-item" id="nav-sheets" onclick="showPage('sheets')" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Google Sheets
+    </button>
+  </nav>
+  <div class="sidebar-footer">
+    <div id="sidebarUser" style="margin-bottom:8px;font-size:12px;color:var(--text2)"></div>
+    <button class="btn btn-outline btn-sm" onclick="doLogout()">Sign Out</button>
+  </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main class="main">
+
+<!-- ─── SUBMIT PAGE ─── -->
+<div id="page-submit" class="page active">
+  <div class="topbar">
+    <div>
+      <h1>Daily Session Status</h1>
+      <p style="font-size:13px;color:var(--text2);margin-top:3px">Submit your work update for all 4 sessions by 6:30 PM</p>
+    </div>
+    <div class="date-chip" id="topDateChip"></div>
+  </div>
+  <div class="success-banner" id="submitSuccess">
+    Status submitted successfully! Your responses have been recorded.
+  </div>
+  <div class="alert-info" id="alreadySubmitted" style="display:none">
+    <strong>Already submitted today</strong>
+    You have already submitted your session status for today. You can re-submit to update.
+  </div>
+
+  <div id="sessionsForm"></div>
+
+  <div style="display:flex;gap:12px;margin-top:8px;align-items:center">
+    <button class="btn btn-primary" id="submitBtn" onclick="submitStatus()">Submit All Sessions</button>
+    <button class="btn btn-outline" onclick="clearForm()">Clear</button>
+    <span style="font-size:12px;color:var(--text3)" id="submitNote">All 4 sessions required</span>
+  </div>
+</div>
+
+<!-- ─── MY REPORT PAGE ─── -->
+<div id="page-myreport" class="page">
+  <div class="topbar"><h1>My Performance Report</h1><div class="date-chip" id="myRepDate"></div></div>
+  <div class="grid4" style="margin-bottom:20px" id="myStatCards"></div>
+  <div class="grid2" style="margin-bottom:20px">
+    <div class="card">
+      <h3 style="font-size:13px;color:var(--text2);margin-bottom:16px">Attendance this month</h3>
+      <div class="chart-wrap"><canvas id="myAttChart"></canvas></div>
+    </div>
+    <div class="card">
+      <h3 style="font-size:13px;color:var(--text2);margin-bottom:16px">Performance marks</h3>
+      <div class="chart-wrap"><canvas id="myMarksChart"></canvas></div>
+    </div>
+  </div>
+  <div class="card">
+    <h3 style="font-size:13px;color:var(--text2);margin-bottom:16px">Recent submissions</h3>
+    <div class="tbl-wrap" id="myRecentTable"></div>
+  </div>
+</div>
+
+<!-- ─── DASHBOARD PAGE ─── -->
+<div id="page-dashboard" class="page">
+  <div class="topbar"><h1>Manager Dashboard</h1><div class="date-chip" id="dashDate"></div></div>
+  <div class="grid4" style="margin-bottom:20px" id="dashStats"></div>
+  <div class="grid2" style="margin-bottom:20px">
+    <div class="card">
+      <h3 style="font-size:13px;color:var(--text2);margin-bottom:16px">Today's attendance overview</h3>
+      <div class="chart-wrap"><canvas id="dashPieChart"></canvas></div>
+    </div>
+    <div class="card">
+      <h3 style="font-size:13px;color:var(--text2);margin-bottom:16px">Top performers this week</h3>
+      <div id="topPerformers"></div>
+    </div>
+  </div>
+  <div class="card">
+    <h3 style="font-size:13px;color:var(--text2);margin-bottom:16px">Today's session status</h3>
+    <div class="tbl-wrap" id="todayStatusTable"></div>
+  </div>
+</div>
+
+<!-- ─── ALL STAFF PAGE ─── -->
+<div id="page-allstaff" class="page">
+  <div class="topbar"><h1>All Staff Records</h1></div>
+  <div class="tabs">
+    <div class="tab active" onclick="staffTab('today',this)">Today</div>
+    <div class="tab" onclick="staffTab('week',this)">This Week</div>
+    <div class="tab" onclick="staffTab('month',this)">This Month</div>
+  </div>
+  <div class="card">
+    <div class="tbl-wrap" id="allStaffTable"></div>
+  </div>
+</div>
+
+<!-- ─── EDIT MARKS PAGE ─── -->
+<div id="page-marks" class="page">
+  <div class="topbar"><h1>Edit Performance Marks</h1></div>
+  <div class="alert-info"><strong>Manager only</strong>Marks are out of 10 per session. Updating marks recalculates overall performance scores.</div>
+  <div class="card">
+    <div id="marksDate" style="margin-bottom:16px">
+      <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">Select date</label>
+      <input type="text" id="marksDatePick" style="width:200px" placeholder="YYYY-MM-DD" />
+      <button class="btn btn-outline btn-sm" style="margin-left:8px" onclick="loadMarksTable()">Load</button>
+    </div>
+    <div class="tbl-wrap" id="marksTable"></div>
+    <div style="margin-top:16px">
+      <button class="btn btn-primary" onclick="saveMarks()">Save Marks</button>
+      <span style="font-size:12px;color:var(--text3);margin-left:12px" id="marksSaveMsg"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ─── GOOGLE SHEETS PAGE ─── -->
+<div id="page-sheets" class="page">
+  <div class="topbar"><h1>Google Sheets Integration</h1></div>
+  <div class="grid2">
+    <div class="card">
+      <h3 style="font-size:14px;font-weight:500;margin-bottom:12px">Setup Google Apps Script</h3>
+      <p style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:14px">Connect this tracker to Google Sheets so every session submission is automatically saved. Follow the steps below.</p>
+      <div class="field">
+        <label>Your Google Apps Script Web App URL</label>
+        <input type="text" id="sheetsUrl" placeholder="https://script.google.com/macros/s/YOUR_ID/exec"/>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="saveSheetsUrl()">Save URL</button>
+      <div class="success-banner" id="urlSaved" style="margin-top:12px">URL saved! Submissions will now sync to Google Sheets.</div>
+    </div>
+    <div class="card">
+      <h3 style="font-size:14px;font-weight:500;margin-bottom:12px">Connection status</h3>
+      <div id="sheetsStatus" style="font-size:13px;color:var(--text2)">Not configured yet. Add your script URL to enable sync.</div>
+      <button class="btn btn-outline btn-sm" style="margin-top:12px" onclick="testSheets()">Test Connection</button>
+    </div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <h3 style="font-size:14px;font-weight:500;margin-bottom:16px">Google Apps Script — paste this in your Sheet</h3>
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;font-family:'DM Mono',monospace;font-size:11px;color:#a8b4d0;line-height:1.8;overflow-x:auto;white-space:pre" id="appsScriptCode"></div>
+    <button class="btn btn-outline btn-sm" style="margin-top:12px" onclick="copyScript()">Copy Script</button>
+  </div>
+</div>
+
+</main>
+</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// DATA & CONFIG
+// ═══════════════════════════════════════════
+const STAFF = [
+  {name:"Selvapandian P", role:"MIS"},
+  {name:"Bhuvaneshwari R", role:"Counselor"},
+  {name:"Benazir S", role:"Counselor"},
+  {name:"Kanchana L", role:"SBT Trainer"},
+  {name:"Subbulakshmi CN", role:"SBT Trainer"},
+  {name:"Pretheeviraj G", role:"IT Trainer"},
+  {name:"Akila G", role:"IT Trainer"},
+  {name:"Deviga J", role:"SMO Trainer"},
+  {name:"Nagendra Gupta S", role:"Mobilizer"},
+  {name:"Shaira Banu S", role:"IT Trainer"}
+];
+
+const SESSIONS = [
+  {id:"s1", label:"Session 1", time:"09:30 – 11:30"},
+  {id:"s2", label:"Session 2", time:"11:30 – 01:30"},
+  {id:"s3", label:"Session 3", time:"02:00 – 04:00"},
+  {id:"s4", label:"Session 4", time:"04:00 – 06:30"}
+];
+
+const STATUS_OPTIONS = ["Present","WFH","Away","Leave"];
+const STATUS_CLS = {Present:"sel-present",WFH:"sel-wfh",Away:"sel-away",Leave:"sel-leave"};
+const BADGE_CLS = {Present:"badge-present",WFH:"badge-wfh",Away:"badge-away",Leave:"badge-leave"};
+
+const PASS_STAFF = "staff123";
+const PASS_MANAGER = "admin123";
+
+let currentUser = null;
+let isManager = false;
+let selectedStatus = {s1:null,s2:null,s3:null,s4:null};
+let chartsInst = {};
+
+// Local storage key
+const STORAGE_KEY = "sst_data_v2";
+
+function getStore(){
+  try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}"); }
+  catch(e){ return {}; }
+}
+function saveStore(d){ localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); }
+
+function todayStr(){
+  const n=new Date();
+  return n.getFullYear()+"-"+(n.getMonth()+1).toString().padStart(2,"0")+"-"+n.getDate().toString().padStart(2,"0");
+}
+
+function fmtDate(str){
+  const d=new Date(str+"T00:00:00");
+  const days=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const months=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+// ═══════════════════════════════════════════
+// LOGIN
+// ═══════════════════════════════════════════
+let loginType = "staff";
+function setLoginType(t){
+  loginType=t;
+  document.querySelectorAll(".login-tab").forEach((el,i)=>el.classList.toggle("active",(t==="staff"&&i===0)||(t==="manager"&&i===1)));
+  document.getElementById("managerOpt").style.display=t==="manager"?"":"none";
+  const sel=document.getElementById("loginName");
+  if(t==="manager") sel.value="MANAGER";
+}
+
+function doLogin(){
+  const name=document.getElementById("loginName").value;
+  const pass=document.getElementById("loginPass").value.trim();
+  const err=document.getElementById("loginError");
+  if(!name){err.style.display="block";err.textContent="Please select your name.";return;}
+  if(loginType==="manager"){
+    if(name!=="MANAGER"||pass!==PASS_MANAGER){err.style.display="block";err.textContent="Wrong manager password.";return;}
+    currentUser="Manager";isManager=true;
+  } else {
+    if(pass!==PASS_STAFF){err.style.display="block";err.textContent="Wrong staff password.";return;}
+    currentUser=name;isManager=false;
+  }
+  err.style.display="none";
+  document.getElementById("loginPage").style.display="none";
+  document.getElementById("mainApp").style.display="block";
+  initApp();
+}
+
+function doLogout(){
+  currentUser=null;isManager=false;
+  document.getElementById("loginPage").style.display="flex";
+  document.getElementById("mainApp").style.display="none";
+  document.getElementById("loginPass").value="";
+  document.getElementById("loginName").value="";
+  loginType="staff";
+  document.querySelectorAll(".login-tab").forEach((el,i)=>el.classList.toggle("active",i===0));
+  document.getElementById("managerOpt").style.display="none";
+}
+
+// ═══════════════════════════════════════════
+// INIT APP
+// ═══════════════════════════════════════════
+function initApp(){
+  const d=new Date();
+  const days=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const months=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const ds=`${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+  ["sidebarDate","topDateChip","myRepDate","dashDate"].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=ds;});
+  document.getElementById("sidebarUser").textContent=isManager?"Manager (Admin)":currentUser;
+
+  // Show manager nav
+  ["dashboard","allstaff","marks","sheets"].forEach(p=>{
+    document.getElementById("nav-"+p).style.display=isManager?"flex":"none";
+  });
+  document.getElementById("mgr-nav-section").style.display=isManager?"block":"none";
+
+  buildSessionsForm();
+  checkAlreadySubmitted();
+  if(isManager) showPage("dashboard");
+  else showPage("submit");
+}
+
+// ═══════════════════════════════════════════
+// SESSION FORM
+// ═══════════════════════════════════════════
+function buildSessionsForm(){
+  const wrap=document.getElementById("sessionsForm");
+  wrap.innerHTML="";
+  SESSIONS.forEach(sess=>{
+    const div=document.createElement("div");
+    div.className="session-block";
+    const btnHtml=STATUS_OPTIONS.map(s=>`<button class="status-btn" data-sess="${sess.id}" data-status="${s}" onclick="pickStatus('${sess.id}','${s}')">${s}</button>`).join("");
+    div.innerHTML=`
+      <div class="session-block-header">
+        <h4>${sess.label}</h4>
+        <span class="session-time-tag">${sess.time}</span>
+      </div>
+      <div style="margin-bottom:8px"><span style="font-size:12px;color:var(--text3)">Status</span></div>
+      <div class="status-group" id="sg-${sess.id}">${btnHtml}</div>
+      <input class="work-input" id="work-${sess.id}" placeholder="Describe your work done this session…"/>
+    `;
+    wrap.appendChild(div);
+  });
+}
+
+function pickStatus(sessId, status){
+  selectedStatus[sessId]=status;
+  document.querySelectorAll(`.status-btn[data-sess="${sessId}"]`).forEach(btn=>{
+    btn.className="status-btn";
+    if(btn.dataset.status===status) btn.classList.add(STATUS_CLS[status]);
+  });
+}
+
+function clearForm(){
+  selectedStatus={s1:null,s2:null,s3:null,s4:null};
+  buildSessionsForm();
+  document.getElementById("submitSuccess").style.display="none";
+}
+
+function checkAlreadySubmitted(){
+  const store=getStore();
+  const today=todayStr();
+  const key=`${currentUser}_${today}`;
+  const el=document.getElementById("alreadySubmitted");
+  if(store[key]) el.style.display="block";
+  else el.style.display="none";
+}
+
+function submitStatus(){
+  const missing=SESSIONS.filter(s=>!selectedStatus[s.id]);
+  if(missing.length){
+    document.getElementById("submitNote").style.color="var(--red)";
+    document.getElementById("submitNote").textContent=`Please select status for: ${missing.map(s=>s.label).join(", ")}`;
+    return;
+  }
+  const store=getStore();
+  const today=todayStr();
+  const key=`${currentUser}_${today}`;
+  const entry={
+    name:currentUser,
+    date:today,
+    timestamp:new Date().toISOString(),
+    sessions:{}
+  };
+  SESSIONS.forEach(s=>{
+    entry.sessions[s.id]={
+      status:selectedStatus[s.id],
+      work:document.getElementById("work-"+s.id).value.trim(),
+      marks: store[key]?.sessions?.[s.id]?.marks ?? null
+    };
+  });
+  store[key]=entry;
+  saveStore(store);
+
+  // Send to Google Sheets if URL is configured
+  const sheetsUrl=localStorage.getItem("sst_sheets_url");
+  if(sheetsUrl) syncToSheets(entry, sheetsUrl);
+
+  document.getElementById("submitSuccess").style.display="block";
+  document.getElementById("alreadySubmitted").style.display="block";
+  document.getElementById("submitNote").style.color="var(--text3)";
+  document.getElementById("submitNote").textContent="Submitted!";
+  setTimeout(()=>{document.getElementById("submitSuccess").style.display="none";},4000);
+}
+
+function syncToSheets(entry, url){
+  fetch(url,{method:"POST",mode:"no-cors",body:JSON.stringify(entry)}).catch(()=>{});
+}
+
+// ═══════════════════════════════════════════
+// PAGES
+// ═══════════════════════════════════════════
+function showPage(page){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+  document.getElementById("page-"+page).classList.add("active");
+  const navEl=document.getElementById("nav-"+page);
+  if(navEl) navEl.classList.add("active");
+  if(page==="myreport") buildMyReport();
+  if(page==="dashboard") buildDashboard();
+  if(page==="allstaff") buildAllStaff("today");
+  if(page==="marks"){ const d=todayStr();document.getElementById("marksDatePick").value=d;loadMarksTable();}
+  if(page==="sheets") buildSheetsPage();
+}
+
+// ═══════════════════════════════════════════
+// MY REPORT
+// ═══════════════════════════════════════════
+function buildMyReport(){
+  const store=getStore();
+  const today=todayStr();
+  const myEntries=Object.values(store).filter(e=>e.name===currentUser);
+
+  // Stats
+  const totalDays=myEntries.length;
+  const totalSessions=myEntries.reduce((a,e)=>a+Object.values(e.sessions).filter(s=>s.status==="Present").length,0);
+  const avgMarks=getAvgMarks(myEntries);
+  const streak=calcStreak(myEntries);
+
+  document.getElementById("myStatCards").innerHTML=`
+    <div class="stat-card"><div class="stat-label">Days submitted</div><div class="stat-value" style="color:var(--accent)">${totalDays}</div><div class="stat-sub">Total records</div></div>
+    <div class="stat-card"><div class="stat-label">Present sessions</div><div class="stat-value" style="color:var(--green)">${totalSessions}</div><div class="stat-sub">All time</div></div>
+    <div class="stat-card"><div class="stat-label">Avg marks</div><div class="stat-value" style="color:var(--amber)">${avgMarks}</div><div class="stat-sub">Out of 10</div></div>
+    <div class="stat-card"><div class="stat-label">Current streak</div><div class="stat-value" style="color:var(--blue)">${streak}</div><div class="stat-sub">Days</div></div>
+  `;
+
+  // Attendance chart
+  const last7=getLast7Days();
+  const attData=last7.map(d=>{
+    const e=store[`${currentUser}_${d}`];
+    if(!e) return 0;
+    return Object.values(e.sessions).filter(s=>s.status==="Present"||s.status==="WFH").length;
+  });
+  destroyChart("myAttChart");
+  chartsInst.myAttChart=new Chart(document.getElementById("myAttChart"),{
+    type:"bar",
+    data:{labels:last7.map(d=>{const dt=new Date(d+"T00:00:00");return ["Su","Mo","Tu","We","Th","Fr","Sa"][dt.getDay()];}),datasets:[{data:attData,backgroundColor:"rgba(79,124,255,0.5)",borderColor:"rgba(79,124,255,0.9)",borderWidth:1,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:4,ticks:{color:"#555e72",stepSize:1},grid:{color:"rgba(255,255,255,0.05)"}},x:{ticks:{color:"#555e72"},grid:{display:false}}}}
+  });
+
+  // Marks chart
+  const marksData=last7.map(d=>{
+    const e=store[`${currentUser}_${d}`];
+    if(!e) return null;
+    const ms=Object.values(e.sessions).map(s=>s.marks).filter(m=>m!==null&&m!==undefined);
+    return ms.length?ms.reduce((a,b)=>a+b,0)/ms.length:null;
+  });
+  destroyChart("myMarksChart");
+  chartsInst.myMarksChart=new Chart(document.getElementById("myMarksChart"),{
+    type:"line",
+    data:{labels:last7.map(d=>{const dt=new Date(d+"T00:00:00");return ["Su","Mo","Tu","We","Th","Fr","Sa"][dt.getDay()];}),datasets:[{data:marksData,borderColor:"#22c97a",backgroundColor:"rgba(34,201,122,0.1)",fill:true,tension:0.4,pointBackgroundColor:"#22c97a",pointRadius:4,spanGaps:true}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:10,ticks:{color:"#555e72"},grid:{color:"rgba(255,255,255,0.05)"}},x:{ticks:{color:"#555e72"},grid:{display:false}}}}
+  });
+
+  // Recent table
+  const recent=myEntries.sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10);
+  document.getElementById("myRecentTable").innerHTML=recentTableHtml(recent);
+}
+
+function recentTableHtml(entries){
+  if(!entries.length) return "<p style='padding:16px;font-size:13px;color:var(--text3)'>No submissions yet.</p>";
+  const rows=entries.map(e=>`
+    <tr>
+      <td>${fmtDate(e.date)}</td>
+      ${SESSIONS.map(s=>`<td><span class="badge ${BADGE_CLS[e.sessions[s.id]?.status]||"badge-pending"}">${e.sessions[s.id]?.status||"—"}</span></td>`).join("")}
+      <td style="color:var(--amber)">${getEntryAvgMarks(e)}</td>
+    </tr>
+  `).join("");
+  return `<table><thead><tr><th>Date</th>${SESSIONS.map(s=>`<th>${s.label}</th>`).join("")}<th>Avg Marks</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+// ═══════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════
+function buildDashboard(){
+  const store=getStore();
+  const today=todayStr();
+  const todayEntries=STAFF.map(s=>({staff:s,entry:store[`${s.name}_${today}`]||null}));
+
+  const submitted=todayEntries.filter(e=>e.entry).length;
+  const present=todayEntries.filter(e=>e.entry&&Object.values(e.entry.sessions).some(s=>s.status==="Present")).length;
+  const wfh=todayEntries.filter(e=>e.entry&&Object.values(e.entry.sessions).some(s=>s.status==="WFH")).length;
+  const leave=todayEntries.filter(e=>e.entry&&Object.values(e.entry.sessions).some(s=>s.status==="Leave")).length;
+
+  document.getElementById("dashStats").innerHTML=`
+    <div class="stat-card"><div class="stat-label">Total staff</div><div class="stat-value" style="color:var(--text)">${STAFF.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Submitted today</div><div class="stat-value" style="color:var(--accent)">${submitted}</div></div>
+    <div class="stat-card"><div class="stat-label">Present today</div><div class="stat-value" style="color:var(--green)">${present}</div></div>
+    <div class="stat-card"><div class="stat-label">On leave</div><div class="stat-value" style="color:var(--red)">${leave}</div></div>
+  `;
+
+  // Pie chart
+  destroyChart("dashPieChart");
+  chartsInst.dashPieChart=new Chart(document.getElementById("dashPieChart"),{
+    type:"doughnut",
+    data:{labels:["Present","WFH","Away","Leave","Not Submitted"],
+      datasets:[{data:[present,wfh,todayEntries.filter(e=>e.entry&&Object.values(e.entry.sessions).some(s=>s.status==="Away")).length,leave,STAFF.length-submitted],
+        backgroundColor:["rgba(34,201,122,0.8)","rgba(79,124,255,0.8)","rgba(245,158,11,0.8)","rgba(240,80,110,0.8)","rgba(80,80,100,0.5)"],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:"65%",plugins:{legend:{position:"bottom",labels:{color:"#8b93a8",padding:12,font:{size:12}}}}}
+  });
+
+  // Top performers
+  const perf=STAFF.map(s=>{
+    const entries=Object.values(store).filter(e=>e.name===s.name);
+    const avg=getAvgMarks(entries);
+    const pct=Math.round(entries.filter(e=>Object.values(e.sessions).some(se=>se.status==="Present"||se.status==="WFH")).length/(entries.length||1)*100);
+    return {name:s.name,role:s.role,avg,pct};
+  }).sort((a,b)=>b.avg-a.avg||b.pct-a.pct);
+
+  document.getElementById("topPerformers").innerHTML=perf.map((p,i)=>`
+    <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);${i===perf.length-1?'border-bottom:none':''}">
+      <div style="width:24px;height:24px;border-radius:50%;background:${i===0?"rgba(245,158,11,0.15)":i===1?"rgba(180,180,180,0.1)":i===2?"rgba(205,127,50,0.1)":"rgba(79,124,255,0.08)"};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:${i===0?"var(--amber)":i===1?"#aaa":i===2?"#cd7f32":"var(--text3)"}">${i+1}</div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:500">${p.name}</div><div style="font-size:11px;color:var(--text3)">${p.role}</div></div>
+      <div style="text-align:right"><div style="font-size:13px;color:var(--amber);font-family:'DM Mono',monospace">${p.avg}/10</div><div style="font-size:11px;color:var(--text3)">${p.pct}% present</div></div>
+    </div>
+  `).join("");
+
+  // Today's table
+  const rows=todayEntries.map(({staff,entry})=>`
+    <tr>
+      <td><div style="font-weight:500">${staff.name}</div><div style="font-size:11px;color:var(--text3)">${staff.role}</div></td>
+      ${SESSIONS.map(s=>`<td><span class="badge ${entry?BADGE_CLS[entry.sessions[s.id]?.status]||"badge-pending":"badge-pending"}">${entry?entry.sessions[s.id]?.status||"—":"Not submitted"}</span></td>`).join("")}
+    </tr>
+  `).join("");
+  document.getElementById("todayStatusTable").innerHTML=`<table><thead><tr><th>Staff</th>${SESSIONS.map(s=>`<th>${s.label}<br><span style="font-weight:400;text-transform:none;color:var(--text3)">${s.time}</span></th>`).join("")}</tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+// ═══════════════════════════════════════════
+// ALL STAFF
+// ═══════════════════════════════════════════
+function staffTab(mode,el){
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  el.classList.add("active");
+  buildAllStaff(mode);
+}
+
+function buildAllStaff(mode){
+  const store=getStore();
+  const today=todayStr();
+  let dates=[];
+  if(mode==="today") dates=[today];
+  else if(mode==="week") dates=getLast7Days();
+  else dates=getLastNDays(30);
+
+  const rows=STAFF.map(s=>{
+    const entries=dates.map(d=>store[`${s.name}_${d}`]).filter(Boolean);
+    const pres=entries.reduce((a,e)=>a+Object.values(e.sessions).filter(se=>se.status==="Present").length,0);
+    const wfh=entries.reduce((a,e)=>a+Object.values(e.sessions).filter(se=>se.status==="WFH").length,0);
+    const away=entries.reduce((a,e)=>a+Object.values(e.sessions).filter(se=>se.status==="Away").length,0);
+    const leave=entries.reduce((a,e)=>a+Object.values(e.sessions).filter(se=>se.status==="Leave").length,0);
+    const avg=getAvgMarks(entries);
+    const pct=entries.length?Math.round(entries.filter(e=>Object.values(e.sessions).some(se=>se.status==="Present"||se.status==="WFH")).length/entries.length*100):0;
+    return `<tr>
+      <td><div style="font-weight:500">${s.name}</div><div style="font-size:11px;color:var(--text3)">${s.role}</div></td>
+      <td>${entries.length}</td>
+      <td><span class="badge badge-present">${pres}</span></td>
+      <td><span class="badge badge-wfh">${wfh}</span></td>
+      <td><span class="badge badge-away">${away}</span></td>
+      <td><span class="badge badge-leave">${leave}</span></td>
+      <td style="color:var(--amber);font-family:'DM Mono',monospace">${avg}/10</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="prog-bar" style="width:80px"><div class="prog-fill" style="width:${pct}%;background:${pct>75?"var(--green)":pct>40?"var(--amber)":"var(--red)"}"></div></div>
+          <span style="font-size:12px;color:var(--text2)">${pct}%</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join("");
+  document.getElementById("allStaffTable").innerHTML=`<table><thead><tr><th>Name</th><th>Days</th><th>Present</th><th>WFH</th><th>Away</th><th>Leave</th><th>Avg Marks</th><th>Attendance %</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+// ═══════════════════════════════════════════
+// MARKS EDITOR
+// ═══════════════════════════════════════════
+function loadMarksTable(){
+  const date=document.getElementById("marksDatePick").value||todayStr();
+  const store=getStore();
+  const rows=STAFF.map(s=>{
+    const e=store[`${s.name}_${date}`];
+    const sessInputs=SESSIONS.map(sess=>{
+      const m=e?.sessions?.[sess.id]?.marks;
+      return `<td><input class="marks-input" type="number" min="0" max="10" step="0.5" data-name="${s.name}" data-sess="${sess.id}" value="${m!==null&&m!==undefined?m:''}"/></td>`;
+    }).join("");
+    return `<tr><td><div style="font-weight:500">${s.name}</div><div style="font-size:11px;color:var(--text3)">${s.role}</div></td>${sessInputs}<td><span class="${e?"badge badge-present":"badge badge-pending"}" style="font-size:11px">${e?"Submitted":"No data"}</span></td></tr>`;
+  }).join("");
+  document.getElementById("marksTable").innerHTML=`<table><thead><tr><th>Staff</th>${SESSIONS.map(s=>`<th>${s.label}<br><span style="font-weight:400;text-transform:none;color:var(--text3);font-size:10px">/10</span></th>`).join("")}<th>Status</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function saveMarks(){
+  const date=document.getElementById("marksDatePick").value||todayStr();
+  const store=getStore();
+  document.querySelectorAll(".marks-input").forEach(inp=>{
+    const name=inp.dataset.name;
+    const sess=inp.dataset.sess;
+    const val=inp.value!=""?parseFloat(inp.value):null;
+    const key=`${name}_${date}`;
+    if(!store[key]){
+      store[key]={name,date,timestamp:new Date().toISOString(),sessions:{s1:{status:null,work:"",marks:null},s2:{status:null,work:"",marks:null},s3:{status:null,work:"",marks:null},s4:{status:null,work:"",marks:null}}};
+    }
+    store[key].sessions[sess].marks=val;
+  });
+  saveStore(store);
+  const msg=document.getElementById("marksSaveMsg");
+  msg.textContent="Marks saved successfully!";
+  msg.style.color="var(--green)";
+  setTimeout(()=>{msg.textContent="";},3000);
+}
+
+// ═══════════════════════════════════════════
+// GOOGLE SHEETS PAGE
+// ═══════════════════════════════════════════
+function buildSheetsPage(){
+  const url=localStorage.getItem("sst_sheets_url")||"";
+  document.getElementById("sheetsUrl").value=url;
+  document.getElementById("sheetsStatus").innerHTML=url?`<span style="color:var(--green)">Connected to: <br><small style="font-family:monospace;word-break:break-all">${url}</small></span>`:"Not configured. Add your Google Apps Script URL above.";
+
+  const script=`// ===== PASTE THIS IN Google Apps Script =====
+// Go to: script.google.com → New Project → paste this code
+// Then: Deploy → New Deployment → Web App → Anyone → Deploy
+
+function doPost(e) {
+  try {
+    var data = JSON.parse(e.postData.contents);
+    var sheet = SpreadsheetApp.getActiveSpreadsheet()
+      .getSheetByName("SessionData") 
+      || SpreadsheetApp.getActiveSpreadsheet().insertSheet("SessionData");
+    
+    // Add header if empty
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow([
+        "Timestamp","Name","Date",
+        "S1 Status","S1 Work","S1 Marks",
+        "S2 Status","S2 Work","S2 Marks",
+        "S3 Status","S3 Work","S3 Marks",
+        "S4 Status","S4 Work","S4 Marks"
+      ]);
+    }
+    
+    var s = data.sessions;
+    sheet.appendRow([
+      new Date().toISOString(), data.name, data.date,
+      s.s1.status, s.s1.work, s.s1.marks||"",
+      s.s2.status, s.s2.work, s.s2.marks||"",
+      s.s3.status, s.s3.work, s.s3.marks||"",
+      s.s4.status, s.s4.work, s.s4.marks||""
+    ]);
+    
+    return ContentService
+      .createTextOutput(JSON.stringify({success: true}))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({error: err.toString()}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}`;
+  document.getElementById("appsScriptCode").textContent=script;
+}
+
+function saveSheetsUrl(){
+  const url=document.getElementById("sheetsUrl").value.trim();
+  if(url) localStorage.setItem("sst_sheets_url",url);
+  document.getElementById("urlSaved").style.display="block";
+  document.getElementById("sheetsStatus").innerHTML=`<span style="color:var(--green)">Connected to:<br><small style="font-family:monospace;word-break:break-all">${url}</small></span>`;
+  setTimeout(()=>{document.getElementById("urlSaved").style.display="none";},3000);
+}
+
+function testSheets(){
+  const url=localStorage.getItem("sst_sheets_url");
+  if(!url){alert("No URL configured yet.");return;}
+  fetch(url,{method:"POST",mode:"no-cors",body:JSON.stringify({test:true,name:"Test",date:todayStr(),sessions:{s1:{status:"Present",work:"Test",marks:null},s2:{status:"Present",work:"Test",marks:null},s3:{status:"Present",work:"Test",marks:null},s4:{status:"Present",work:"Test",marks:null}}})})
+    .then(()=>alert("Request sent! Check your Google Sheet for a new row."))
+    .catch(e=>alert("Error: "+e));
+}
+
+function copyScript(){
+  const txt=document.getElementById("appsScriptCode").textContent;
+  navigator.clipboard.writeText(txt).then(()=>{
+    const btn=event.target;btn.textContent="Copied!";btn.style.color="var(--green)";
+    setTimeout(()=>{btn.textContent="Copy Script";btn.style.color="";},2000);
+  });
+}
+
+// ═══════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════
+function getAvgMarks(entries){
+  const all=[];
+  entries.forEach(e=>Object.values(e.sessions).forEach(s=>{if(s.marks!==null&&s.marks!==undefined)all.push(s.marks);}));
+  return all.length?(all.reduce((a,b)=>a+b,0)/all.length).toFixed(1):"—";
+}
+function getEntryAvgMarks(entry){
+  const ms=Object.values(entry.sessions).map(s=>s.marks).filter(m=>m!==null&&m!==undefined);
+  return ms.length?(ms.reduce((a,b)=>a+b,0)/ms.length).toFixed(1):"—";
+}
+function calcStreak(entries){
+  if(!entries.length) return 0;
+  const dates=entries.map(e=>e.date).sort().reverse();
+  let streak=0, cur=new Date();
+  for(let i=0;i<dates.length;i++){
+    const d=new Date(dates[i]+"T00:00:00");
+    const diff=Math.round((cur-d)/(1000*86400));
+    if(diff<=1){streak++;cur=d;}else break;
+  }
+  return streak;
+}
+function getLast7Days(){return getLastNDays(7);}
+function getLastNDays(n){
+  const days=[];
+  for(let i=0;i<n;i++){const d=new Date();d.setDate(d.getDate()-i);days.push(d.getFullYear()+"-"+(d.getMonth()+1).toString().padStart(2,"0")+"-"+d.getDate().toString().padStart(2,"0"));}
+  return days.reverse();
+}
+function destroyChart(id){if(chartsInst[id]){chartsInst[id].destroy();delete chartsInst[id];}}
+
+// Auto-refresh date every minute
+setInterval(()=>{
+  const d=new Date();
+  const days=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const months=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const ds=`${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+  ["sidebarDate","topDateChip","myRepDate","dashDate"].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=ds;});
+},60000);
+</script>
+</body>
+</html>
