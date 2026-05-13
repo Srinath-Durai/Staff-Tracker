@@ -1854,11 +1854,42 @@ function saveSheetsUrl() {
 }
 
 function testSheets() {
+
   const url = localStorage.getItem("sst_sheets_url");
-  if(!url) { alert("No URL configured yet."); return; }
-  fetch(url, {method:"POST", mode:"no-cors", body:JSON.stringify({test:true, name:"Test", date:todayStr(), sessions:{s1:{status:"Present",work:"Test",marks:null},s2:{status:"Present",work:"Test",marks:null},s3:{status:"Present",work:"Test",marks:null},s4:{status:"Present",work:"Test",marks:null}}})})
-    .then(()=>alert("Test sent! Check your Google Sheet for a new row."))
-    .catch(e=>alert("Error: "+e));
+
+  if (!url) {
+    alert("No URL configured yet.");
+    return;
+  }
+
+  const data = {
+    test: true,
+    name: "Test",
+    date: todayStr(),
+    sessions: {
+      s1: { status: "Present", work: "Test", marks: null },
+      s2: { status: "Present", work: "Test", marks: null },
+      s3: { status: "Present", work: "Test", marks: null },
+      s4: { status: "Present", work: "Test", marks: null }
+    }
+  };
+
+  fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(data)
+  })
+  .then(response => response.json())
+  .then(result => {
+    console.log(result);
+    alert("Test sent successfully!");
+  })
+  .catch(error => {
+    console.error(error);
+    alert("Error: " + error);
+  });
 }
 
 function copyScript() {
