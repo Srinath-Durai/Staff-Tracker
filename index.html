@@ -1852,6 +1852,46 @@ function saveSheetsUrl() {
   setTimeout(()=>saved.classList.remove("show"), 3000);
   buildSheetsPage();
 }
+async function testSheets() {
+
+  const url = localStorage.getItem("sst_sheets_url");
+
+  const data = {
+    test: true,
+    name: "Test User",
+    date: "2026-05-13",
+    sessions: {
+      s1: { status: "Present", work: "Work1", marks: 10 },
+      s2: { status: "Present", work: "Work2", marks: 20 },
+      s3: { status: "Present", work: "Work3", marks: 30 },
+      s4: { status: "Present", work: "Work4", marks: 40 }
+    }
+  };
+
+  try {
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain"
+      },
+      body: JSON.stringify(data)
+    });
+
+    const result = await response.text();
+
+    console.log(result);
+
+    alert("SUCCESS");
+
+  } catch(err) {
+
+    console.error(err);
+
+    alert(err);
+
+  }
+}
 
 function testSheets() {
 
